@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AllocHookStudio</RootNamespace>
+    <AssemblyName>AllocHookStudio</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>CS8618</NoWarn>
+    <!-- 允许在只装了更高版本运行时（如 .NET 10）的机器上直接运行 -->
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,43 @@
+# Native CMake 构建产物
+native/build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# .NET 构建产物
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+
+# Studio 运行时生成数据
+studio/data/snapshots/
+studio/data/symcache/
+studio/data/uploads/
+allochook.bin
+
+# Unity 临时目录（UPM 包中的预编译 .so/.aar 是发布产物，保留）
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Bb]uild/
+[Bb]uilds/
+[Oo]bj/
+
+# IDE / 编辑器
+.vs/
+.vscode/
+.idea/
+
+# 操作系统生成文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 临时 / 备份文件
+*.log
+*.tmp
+*.bak
+*.swp
+*~

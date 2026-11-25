@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AllocHook Studio — Native Memory Profiler</title>
+<link rel="stylesheet" href="style.css?v=20" />
+<script src="lib/echarts.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <path d="M7 15l3-4 3 3 4-5" />
+      </svg>
+      <span class="brand-title">AllocHook Studio</span>
+      <span class="brand-tag">NATIVE PROFILER</span>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <div class="pill-group" title="已连接的 ADB 设备">
+      <span id="devDot" class="status-dot"></span>
+      <select id="device" class="select-compact"></select>
+      <button id="btnRefreshDev" class="btn-icon" title="刷新设备列表">↻</button>
+    </div>
+
+    <button id="btnEnvModal" class="env-pill" title="配置包名、APK 安装、符号目录、LLVM 与 ADB">
+      <span class="env-icon">⚙</span>
+      <span id="envPillPkg" class="env-pkg">未配置包名</span>
+      <span id="envPillBadge" class="env-badge warn">检查环境</span>
+    </button>
+
+    <div class="unit-seg" id="unitSeg" title="内存显示单位">
+      <button data-unit="KB">KB</button>
+      <button data-unit="MB" class="active">MB</button>
+      <button data-unit="GB">GB</button>
+    </div>
+
+    <div id="verPill" class="ver-pill" title="服务端构建时间与心跳">
+      <span id="verDot" class="status-dot ok"></span>
+      <span id="verText">连接中…</span>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+  <aside class="sidebar">
+    <!-- 1. 启动配置 -->
+    <section class="panel-card">
+      <div class="panel-head">
+        <h3>启动配置</h3>
+        <span id="cfgTimingTag" class="mini-tag">Standard</span>
+      </div>
+
+      <div class="field-label">Hook 时机</div>
+      <div class="seg-ctrl" id="timingSeg">
+        <button data-val="standard" class="active" title="ContentProvider 早期加载（initOrder=max），延迟 500ms 打补丁，兼容性最广">标准时机<br><small>ContentProvider</small></button>
+        <button data-val="jdwp" title="am start -D 挂起后 JDWP 注入并置 patch_delay_ms=0，在第一行代码执行前拦截">最早时机<br><small>JDWP 注入</small></button>
+      </div>
+
+      <div class="field-label">采集模式</div>
+      <div class="seg-ctrl" id="modeSeg">
+        <button data-val="normal" title="只抓 L1 页级 mmap/mprotect，不 hook malloc，数据可与线上包对标">线上口径<br><small>仅 L1 页级</small></button>
+        <button data-val="systemallocator" class="active" title="附加 -systemallocator 启动并开启轻量 L2（malloc 持有者视图）">完整归因<br><small>-systemallocator + L2</small></button>
+      </div>
+
+      <div id="l2ParamsBox" class="l2-grid">
+        <div class="l2-field">
+          <label for="l2Min">L2 阈值 (B)</label>
+          <input id="l2Min" type="number" min="0" step="256" value="4096" />
+          <div class="quick-chips">
+            <button type="button" class="chip" data-l2min="256">256</button>
+            <button type="button" class="chip" data-l2min="1024">1K</button>
+            <button type="button" class="chip" data-l2min="4096">4K</button>
+          </div>
+        </div>
+        <div class="l2-field">
+          <label for="l2Frames">栈深</label>
+          <input id="l2Frames" type="number" min="1" max="32" step="1" value="16" />
+          <div class="quick-chips">
+            <button type="button" class="chip" data-l2frames="12">12</button>
+            <button type="button" class="chip" data-l2frames="16">16</button>
+            <button type="button" class="chip" data-l2frames="24">24</button>
+          </div>
+        </div>
+        <div class="l2-field">
+          <label for="l2Sample">采样 1/N</label>
+          <input id="l2Sample" type="number" min="1" max="1024" step="1" value="8" />
+          <div class="quick-chips">
+            <button type="button" class="chip" data-l2sample="1">1/1</button>
+            <button type="button" class="chip" data-l2sample="4">1/4</button>
+            <button type="button" class="chip" data-l2sample="8">1/8</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btnUnifiedLaunch" class="btn-primary launch-btn">
+        <span class="btn-ico">▶</span>
+        <span id="launchBtnText">启动 / 重启应用</span>
+      </button>
+
+      <details id="launchLogDetails" class="launch-log">
+        <summary>
+          <span>启动 / 注入日志</span>
+          <span id="launchStatusBadge" class="log-badge muted">待启动</span>
+        </summary>
+        <pre id="launchLogPre" class="log-pre">尚未执行启动操作</pre>
+      </details>
+    </section>
+
+    <!-- 2. 采集 -->
+    <section class="panel-card">
+      <div class="panel-head">
+        <h3>抓取快照</h3>
+        <span id="snapStageText" class="mini-tag muted">就绪</span>
+      </div>
+      <input id="snapLabel" class="input-compact" placeholder="可选备注，如：进主城 / 战斗后…" />
+      <button id="btnSnap" class="btn-accent snap-btn">
+        <span>📷</span>
+        <span id="snapBtnText">抓取当前快照</span>
+      </button>
+    </section>
+
+    <!-- 3. 快照历史 -->
+    <section class="panel-card snap-section">
+      <div class="panel-head">
+        <h3>快照历史 <span id="snapCountBadge" class="count-pill">0</span></h3>
+        <button id="btnOpenLatestDiff" class="btn-ghost btn-xs" title="进入 Diff 比对页">Diff ↗</button>
+      </div>
+      <div id="snapList" class="snap-list"></div>
+    </section>
+  </aside>
+
+  <main class="main-area">
+    <nav class="tabs" id="mainTabs">
+      <button data-tab="stacks" class="active">分配堆栈</button>
+      <button data-tab="pie">模块饼图</button>
+      <button data-tab="pss">PSS 对账</button>
+      <button data-tab="diff">Diff 比对</button>
+      <button data-tab="raw">报告与导出</button>
+    </nav>
+
+    <!-- 1. 分配堆栈 -->
+    <section id="tab-stacks" class="tab active">
+      <div id="stacksEmpty" class="empty-state">
+        <div class="empty-icon">◈</div>
+        <div class="empty-title">选择左侧快照开始分析</div>
+        <div class="empty-sub">支持十万至百万级调用栈服务端分页、实时关键词过滤、业务归因穿透与 PSS 对账</div>
+      </div>
+
+      <div id="stacksContent" class="tab-body hidden">
+        <div id="stacksKpis" class="kpi-grid"></div>
+
+        <div class="toolbar">
+          <div class="layer-seg" id="layerSeg">
+            <button data-layer="1" class="active" title="直接 mmap/mprotect 的当前驻留页（Boehm GC / Baselib 等）">直接 mmap / GC (L1)</button>
+            <button data-layer="2" title="Hook malloc 家族得到的当前存活对象（-systemallocator）">Native 堆持有 (L2 malloc)</button>
+            <button data-layer="all" title="跨 L1 与 L2 查看全部存活分配">全层 (L1+L2)</button>
+          </div>
+
+          <div class="search-box">
+            <span class="search-ico">⌕</span>
+            <input id="stackSearch" placeholder="搜索函数 / 模块 / 线程名…" />
+            <button id="btnClearSearch" class="btn-clear hidden" title="清除搜索">×</button>
+          </div>
+
+          <select id="stackCatFilter" class="select-compact" title="按饼图分类过滤">
+            <option value="">全部分类</option>
+          </select>
+
+          <select id="stackSort" class="select-compact" title="排序方式">
+            <option value="bytes">按占用字节</option>
+            <option value="freed">按已释放</option>
+            <option value="count">按分配次数</option>
+          </select>
+
+          <label class="chk-pill" title="穿透底层分配器/STL容器/IL2CPP包装帧，优先显示业务调用点">
+            <input type="checkbox" id="chkSkipLowFrames" checked />
+            <span>跳过底层帧</span>
+          </label>
+          <label id="wrapHideZero" class="chk-pill" title="隐藏 当前存活=0 的已释放栈">
+            <input type="checkbox" id="chkHideZeroLive" checked />
+            <span>隐藏0存活</span>
+          </label>
+          <label id="wrapScaleEst" class="chk-pill hidden" title="按采样率 ×N 估算全量持有">
+            <input type="checkbox" id="chkL2Est" />
+            <span id="lblScaleEst">×N 估算</span>
+          </label>
+        </div>
+
+        <div id="stackFilterBanner" class="filter-banner hidden"></div>
+        <div id="stackTableWrap" class="table-wrap"></div>
+        <div id="stackPager" class="pager-bar"></div>
+      </div>
+    </section>
+
+    <!-- 2. 模块饼图 -->
+    <section id="tab-pie" class="tab">
+      <div id="pieEmpty" class="empty-state">
+        <div class="empty-icon">◔</div>
+        <div class="empty-title">请先选择一份快照</div>
+        <div class="empty-sub">点击饼图扇区或右侧表格行，可一键跳转至该模块过滤后的「分配堆栈」</div>
+      </div>
+
+      <div id="pieContent" class="tab-body hidden">
+        <div class="pie-topbar">
+          <div id="pieMeta" class="meta-line"></div>
+          <button id="btnToggleRules" class="btn-secondary btn-sm">⚙ 分类规则编辑器</button>
+        </div>
+
+        <div class="pie-split">
+          <div class="pie-chart-card">
+            <div id="pieChart"></div>
+          </div>
+          <div class="pie-table-card">
+            <div id="pieTableWrap"></div>
+          </div>
+          <div id="rulesDrawer" class="rules-drawer hidden">
+            <div class="rules-head">
+              <div>
+                <h4>业务分类规则</h4>
+                <p class="muted-xs">按顺序正则匹配整条调用栈（已剥离分配器与主循环帧），命中即归入该分类。</p>
+              </div>
+              <button id="btnCloseRules" class="btn-icon">✕</button>
+            </div>
+            <div id="rulesList" class="rules-list"></div>
+            <div class="rules-foot">
+              <button id="btnAddRule" class="btn-secondary btn-sm">+ 新增规则</button>
+              <button id="btnSaveRules" class="btn-primary btn-sm">保存并立即重算</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PSS 对账 -->
+    <section id="tab-pss" class="tab">
+      <div id="pssEmpty" class="empty-state">
+        <div class="empty-icon">▤</div>
+        <div class="empty-title">请先选择一份快照</div>
+        <div class="empty-sub">基于进程内 /proc/self/smaps 与 dumpsys meminfo 的逐字节分层对账</div>
+      </div>
+
+      <div id="pssContent" class="tab-body hidden">
+        <div id="pssKpis" class="kpi-grid"></div>
+        <div id="pssDistBar" class="pss-dist-card"></div>
+        <div id="pssTableWrap" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- 4. Diff 比对 -->
+    <section id="tab-diff" class="tab">
+      <div class="diff-controls">
+        <div class="diff-pickers">
+          <label>基准 A
+            <select id="diffSelA" class="select-compact"></select>
+          </label>
+          <button id="btnDiffSwap" class="btn-icon swap-btn" title="交换基准 A 与目标 B">⇄</button>
+          <label>目标 B
+            <select id="diffSelB" class="select-compact"></select>
+          </label>
+        </div>
+        <div class="diff-filters">
+          <select id="diffKindFilter" class="select-compact">
+            <option value="all">全部层 (L1+L2)</option>
+            <option value="l2">仅 L2 持有</option>
+            <option value="l1">仅 L1 页级</option>
+          </select>
+          <div class="seg-mini" id="diffDirSeg">
+            <button data-filter="all" class="active">全部</button>
+            <button data-filter="pos">仅增长 (+)</button>
+            <button data-filter="neg">仅减少 (-)</button>
+          </div>
+          <div class="search-box small">
+            <span class="search-ico">⌕</span>
+            <input id="diffSearch" placeholder="搜索变化栈…" />
+          </div>
+        </div>
+      </div>
+
+      <div id="diffEmpty" class="empty-state">
+        <div class="empty-icon">⇄</div>
+        <div class="empty-title">选择两份快照进行内存增量比对</div>
+        <div class="empty-sub">可在上方下拉框选择基准 A 与目标 B，或在左侧快照卡片点击「设为 A」/「对比」</div>
+      </div>
+
+      <div id="diffContent" class="tab-body hidden">
+        <div id="diffKpis" class="kpi-grid"></div>
+        <div id="diffCatStrip" class="diff-cat-strip"></div>
+        <div id="diffTableWrap" class="table-wrap"></div>
+        <div id="diffPager" class="pager-bar"></div>
+      </div>
+    </section>
+
+    <!-- 5. 报告与导出 -->
+    <section id="tab-raw" class="tab">
+      <div id="rawEmpty" class="empty-state">
+        <div class="empty-icon">☰</div>
+        <div class="empty-title">请先选择一份快照</div>
+        <div class="empty-sub">查看结构化分析报告，或直接流式导出 .md / .json（不卡顿）</div>
+      </div>
+
+      <div id="rawContent" class="tab-body hidden">
+        <div class="toolbar">
+          <div class="layer-seg" id="rawModeSeg">
+            <button data-raw="md" class="active">分析报告 (Markdown)</button>
+            <button data-raw="json">JSON 预览 (前50条)</button>
+          </div>
+          <span class="spacer"></span>
+          <button id="btnCopyMd" class="btn-secondary btn-sm">📋 复制报告</button>
+          <button id="btnDlMd" class="btn-secondary btn-sm">⬇ 下载 .md</button>
+          <button id="btnDlJson" class="btn-primary btn-sm">⬇ 下载完整 .json</button>
+        </div>
+        <div id="rawReportView" class="report-view"></div>
+        <pre id="rawJsonView" class="json-pre hidden"></pre>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 环境与安装包模态框 -->
+<div id="envModal" class="modal-backdrop hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>⚙ 环境与安装包配置</h3>
+      <button id="btnCloseEnv" class="btn-icon">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>目标包名 (Package)
+          <input id="pkg" placeholder="com.xxx.yyy" />
+        </label>
+        <label>ADB 可执行文件
+          <input id="adbPath" placeholder="adb" />
+        </label>
+        <label class="span2">APK 扫描目录
+          <div class="input-row">
+            <input id="apkDir" placeholder="E:\...\Build\Android" />
+            <button id="btnRefreshApk" class="btn-secondary">↻ 扫描</button>
+          </div>
+        </label>
+        <div class="span2 apk-select-box">
+          <label>选择并安装 APK
+            <div class="input-row">
+              <select id="apkList"></select>
+              <button id="btnInstall" class="btn-secondary">安装选中 APK</button>
+            </div>
+          </label>
+          <div id="apkHint" class="field-hint"></div>
+        </div>
+        <div class="span2 upload-box">
+          <label>本地上传并安装 APK
+            <div class="input-row">
+              <input type="file" id="apkFile" accept=".apk" />
+              <button id="btnUpload" class="btn-secondary">上传并安装</button>
+            </div>
+          </label>
+          <div id="uploadTip" class="field-hint"></div>
+        </div>
+        <label class="span2">符号目录 (unityLibrary/symbols/&lt;abi&gt;)
+          <input id="symDir" placeholder="...\unityLibrary\symbols\arm64-v8a" />
+        </label>
+        <label class="span2">LLVM bin 目录 (llvm-addr2line / llvm-nm)
+          <input id="llvmDir" placeholder="...\NDK\toolchains\llvm\prebuilt\windows-x86_64\bin" />
+        </label>
+      </div>
+      <div id="envTip" class="env-status-bar"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="btnCancelEnv" class="btn-secondary">关闭</button>
+      <button id="btnSaveCfg" class="btn-primary">保存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 自定义确认框 -->
+<div id="confirmModal" class="modal-backdrop hidden">
+  <div class="modal-card modal-sm">
+    <div class="modal-head">
+      <h3 id="confirmTitle">确认操作</h3>
+      <button id="confirmClose" class="btn-icon">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMsg" class="confirm-msg"></p>
+    </div>
+    <div class="modal-foot">
+      <button id="confirmCancel" class="btn-secondary">取消</button>
+      <button id="confirmOk" class="btn-danger">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toastStack" class="toast-stack"></div>
+
+<script src="app.js?v=20"></script>
+</body>
+</html>

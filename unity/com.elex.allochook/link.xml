@@ -1,0 +1,4 @@
+<!-- 防止 IL2CPP 托管裁剪把自动加载入口裁掉 -->
+<linker>
+  <assembly fullname="Elex.AllocHook" preserve="all"/>
+</linker>

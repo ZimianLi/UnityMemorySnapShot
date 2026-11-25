@@ -1,0 +1,17 @@
+{
+  "name": "com.elex.allochook",
+  "version": "1.0.0",
+  "displayName": "AllocHook (Native Memory Snapshot)",
+  "description": "Native 内存快照采集层：在 mmap/mprotect 上挂钩子并抓调用栈，配合 AllocHookStudio 定位 Unity 原生内存增长来源。仅用于开发/排查，不要带进正式包。",
+  "unity": "2021.3",
+  "keywords": [
+    "memory",
+    "profiler",
+    "native",
+    "leak"
+  ],
+  "author": {
+    "name": "Elex"
+  },
+  "dependencies": {}
+}

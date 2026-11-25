@@ -1,0 +1,118 @@
+{
+  "AdbPath": "adb",
+  "PackageName": "com.elex.lds.gp",
+  "ApkDir": "E:\\Gitlab\\lds_client\\Build\\Android",
+  "SymbolsDir": "E:\\Gitlab\\lds_client\\Build\\export_project\\TWD\\unityLibrary\\symbols\\arm64-v8a",
+  "LlvmDir": "",
+  "Port": 7788,
+  "Rules": [
+    {
+      "Name": "Meta配置",
+      "Pattern": "MetaManager|MetaBase|MetaRuntimeGroup|ConfigFormatter|MetaSplitManifest|GameLoadMetaStep|MetaTable|GlobalTable|SettingDictionary|TableManager"
+    },
+    {
+      "Name": "邮件/聊天/社交",
+      "Pattern": "Mail|ECMail|Chat|IMManager|Friend|Alliance|Guild|Social|Sobot|ZCSobot"
+    },
+    {
+      "Name": "UI/字体/文本",
+      "Pattern": "UIPanel|UIWidget|UILabel|UISprite|UITexture|UIDrawCall|UIRect|UIAtlas|UIFont|NGUI|GUILayout|GUIManager|TMP_|TextMeshPro|TextRendering|FontImpl|UNITY_FT_|cff_|FT_"
+    },
+    {
+      "Name": "地图/城建/战斗",
+      "Pattern": "MapNode|MapProxy|MapScene|Building|Army|Soldier|Troop|Battle|Arena|Skill|Hero|TowerDefense|LordSurvival|CampWorldBoss|Rumble|City|WorldEvent|WorldCastle|SeasonMap|Explore|ShootingGame|NovaBattle"
+    },
+    {
+      "Name": "音频/视频",
+      "Pattern": "Audio|FMOD|AVPro|MediaPlayer|Video"
+    },
+    {
+      "Name": "登录/支付/热更",
+      "Pattern": "Login|Account|HotUpdate|Patch|PayProxy|ServerList|ArchiveCenter|PrivacyAgreement"
+    },
+    {
+      "Name": "第三方SDK/存储",
+      "Pattern": "Firebase|Crashlytics|Adjust|Bugly|UWA|Analytics|UniWebView|sqlite3|libsqlite3"
+    },
+    {
+      "Name": "渲染/Shader/特效",
+      "Pattern": "Camera::|RenderManager|CullResults|RenderMesh|DrawMesh|GraphicsScripting|GfxDevice|ThreadedStreamBuffer|ShaderLab|Shader::|SRPBatcher|BuiltInCompatibilityChecker|ConstantBuffers|Material|Texture|Mesh::|VertexData::|ParticleSystem|EasyGPUInstancing"
+    },
+    {
+      "Name": "动画/物理/寻路",
+      "Pattern": "mecanim::|AnimationClip|Animator|Playable|b2World|b2Contact|physx::|PhysX|AstarPath|NavMesh"
+    },
+    {
+      "Name": "网络/协议/压缩",
+      "Pattern": "CommunicationManager|NetFacade|ProtocolFactory|WebRequest|Http|Socket|Curl_|mbedtls_|ZlibBaseStream|InflateBlocks|InflateManager|ZlibCodec|LZ4|JObject|JContainer|JsonTextReader|Newtonsoft"
+    },
+    {
+      "Name": "资源/场景反序列化",
+      "Pattern": "Remapper::|PersistentManager|SerializedFile|ResourceManager::|AssetBundle|LoadSceneOperation|PreloadManager|AwakeFromLoad|AsyncUpload|FileCacher|Object::Produce|CloneObject|Object::InsertObjectInMap|TypeTree|TextAsset::|BuiltinResourceManager|SerializationCache"
+    },
+    {
+      "Name": "IL2CPP元数据/反射",
+      "Pattern": "RuntimeType_|RuntimeMethodInfo|AllocGenericMethodInfo|MetadataCache|GenericMethod|GenericClass|SetupMethods|SetupFields|SetupProperties|SetupArray|ConstructGenericArray|ConstructArray|il2cpp_init|il2cpp_codegen|CollectTypeMethods|FromTypeDefinition|Thread::AllocateStaticData"
+    },
+    {
+      "Name": "引擎Job/基础堆",
+      "Pattern": "ujob_|JobQueue|Thread::RunThreadWrapper|BatchAllocator|MemoryProfiler|UnityInitApplication|InitializeEngine"
+    },
+    {
+      "Name": "托管GC(字符串/容器)",
+      "Pattern": "String_FastAllocateString|List_1_|Dictionary|GC_|Boehm|GarbageCollector|alloc_mark_stack"
+    }
+  ],
+  "IgnoreFramePatterns": [
+    "MemoryManager::",
+    "UnityDefaultAllocator<",
+    "DynamicHeapAllocator",
+    "DualThreadAllocator<",
+    "TLSAllocator<",
+    "BucketAllocator",
+    "StackAllocator<",
+    "ThreadsafeLinearAllocator<",
+    "LocalLowLevelAllocator",
+    "baselib::UnityClassic::detail::",
+    "MemoryPool",
+    "il2cpp::utils::Memory::",
+    "il2cpp::utils::MemoryPool::",
+    "GC_(unix_mmap_get_mem|unix_get_mem|collect_or_expand|allocobj|alloc_large|generic_malloc|malloc\\w*|gcj_malloc)",
+    "il2cpp::vm::(Object::(Allocate|New)\\w*|Array::New\\w*|String::New\\w*|GarbageCollector::Allocate\\w*)\\(",
+    "il2cpp::metadata::",
+    "il2cpp::vm::GlobalMetadata::",
+    "il2cpp_codegen_",
+    "il2cpp::vm::MetadataCache::GetGenericMethod\\(",
+    "il2cpp::vm::GenericClass::",
+    "il2cpp::vm::ClassInlines::",
+    "il2cpp::vm::(?:SetupMethodsLocked|SetupFieldsLocked|SetupPropertiesLocked)\\(",
+    "il2cpp::vm::Class::(?:InitLocked|Init|SetupMethods|SetupFields|GetMethods|GetMethodFromNameFlagsAndSig)\\(",
+    "il2cpp::vm::Runtime::(?:Invoke|InvokeWithThrow|ClassInit)\\(",
+    "il2cpp::vm::Type::GetUnderlyingType\\(",
+    "\\bAllocGenericMethodInfo\\(",
+    "\\bGetGenericMethodFromIndex\\(",
+    "\\bGetMethodInfoFromEncodedIndex\\(",
+    "\\bFromTypeDefinition\\(",
+    "\\bUNITY_ft_mem_",
+    "std::__ndk1::",
+    "core::vector_detail::",
+    "core::(vector|hash_set|base_hash_map|hash_map|list|StringStorageDefault|basic_string|function_ref|pair)<",
+    "core::pair<core::hash_set<",
+    "dynamic_array<",
+    "dynamic_block_array<",
+    "vector_map<",
+    "stl_allocator<",
+    "google::(libc_allocator_with_realloc|sparsegroup|dense_hash|sparse_hash)",
+    "il2cpp::utils::collections::",
+    "StreamedBinaryRead::TransferSTLStyleArray<",
+    "TransferPPtr<",
+    "\\boperator new\\b",
+    "(?:^|!)(?:malloc|calloc|realloc|free|memalign|posix_memalign|aligned_alloc)(?:\\(|$)",
+    "Baselib_Memory_",
+    "unwindstack::",
+    "StackUnwinder::",
+    "ResolveUsingLibUnwind",
+    "liballochook\\.so",
+    "libc\\.so"
+  ]
+}
